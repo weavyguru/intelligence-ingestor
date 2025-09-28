@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(python -c \"import secrets; print(secrets.token_urlsafe(32))\")",
+      "Bash(powershell -Command \"[System.Web.Security.Membership]::GeneratePassword(32, 8)\")",
+      "Bash(powershell:*)",
+      "Bash(pip install:*)",
+      "Bash(python -m pip install:*)",
+      "Bash(where python3)",
+      "Bash(python3 -m pip install:*)",
+      "Bash(py --version)",
+      "Bash(py -m pip install:*)",
+      "Bash(python:*)",
+      "Bash(curl -X POST \"http://localhost:8000/ingest?test=true\" -H \"Authorization: Bearer MGI5ODlkN2YtNWY0OS00YWJjLWEzZDMtNWM1YzAxZjUzMWU3YzkwNDViYzgtYmQyZi00OGJlLWEwOWItNWVmODEwMTA1MTRl\" -H \"Content-Type: application/json\" -d \"{\"\"platform\"\": \"\"Lovable\"\", \"\"source\"\": \"\"Reddit\"\", \"\"id\"\": \"\"abc123\"\", \"\"timestamp\"\": \"\"2024-01-15T10:30:00Z\"\", \"\"deeplink\"\": \"\"https://reddit.com/r/programming/comments/abc123\"\", \"\"author\"\": \"\"https://reddit.com/u/testuser\"\", \"\"title\"\": \"\"Test Post Title\"\", \"\"body\"\": \"\"This is the main content of the post that will be embedded\"\", \"\"isComment\"\": false}\")",
+      "Bash(curl -X POST \"http://localhost:8000/ingest?test=true\" -H \"Authorization: Bearer MGI5ODlkN2YtNWY0OS00YWJjLWEzZDMtNWM1YzAxZjUzMWU3YzkwNDViYzgtYmQyZi00OGJlLWEwOWItNWVmODEwMTA1MTRl\" -H \"Content-Type: application/json\" -d \"{\"\"platform\"\": \"\"Replit\"\", \"\"source\"\": \"\"Discord\"\", \"\"id\"\": \"\"xyz789\"\", \"\"timestamp\"\": \"\"2024-01-15T10:35:00Z\"\", \"\"deeplink\"\": \"\"https://discord.com/channels/123/456/789\"\", \"\"author\"\": \"\"https://discord.com/users/123456789\"\", \"\"title\"\": \"\"\"\", \"\"body\"\": \"\"This is a comment on the original post\"\", \"\"isComment\"\": true}\")",
+      "Bash(curl:*)",
+      "Bash(git init:*)",
+      "Bash(chmod:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
