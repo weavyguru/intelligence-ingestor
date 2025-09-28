@@ -17,7 +17,14 @@
       "Bash(curl:*)",
       "Bash(git init:*)",
       "Bash(chmod:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(./push_to_github.sh:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git push:*)",
+      "Bash(az version:*)",
+      "Bash(az ad sp create-for-rbac:*)"
     ],
     "deny": [],
     "ask": []
