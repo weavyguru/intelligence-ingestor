@@ -130,13 +130,15 @@ async def ingest_data(
 
 @app.get("/health")
 async def health_check():
-    bearer_token = os.getenv("BEARER_TOKEN", "MISSING")
-    return {
-        "status": "healthy",
-        "chroma": "bypassed",
-        "bearer_preview": bearer_token[:10] + "..." if bearer_token != "MISSING" else "MISSING",
-        "bearer_length": len(bearer_token) if bearer_token != "MISSING" else 0
-    }
+    try:
+        is_healthy = chroma_manager.health_check()
+        if is_healthy:
+            return {"status": "healthy", "chroma": "connected"}
+        else:
+            raise HTTPException(status_code=503, detail="Chroma database unavailable")
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        raise HTTPException(status_code=503, detail="Service unavailable")
 
 @app.get("/debug-env")
 async def debug_env():
