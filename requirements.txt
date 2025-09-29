@@ -1,8 +1,11 @@
+# Pin to Python 3.11 compatible versions
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-chromadb==0.4.22
+chromadb==0.4.15
 python-dotenv==1.0.0
-pydantic[email]==2.5.2
+pydantic==2.4.2
+pydantic-core==2.10.1
 python-multipart==0.0.6
-numpy<2.0.0
+numpy==1.24.4
 gunicorn==20.1.0
+typing-extensions==4.8.0
