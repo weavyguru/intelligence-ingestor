@@ -7,15 +7,20 @@ logger = logging.getLogger(__name__)
 
 class ChromaClientManager:
     def __init__(self):
-        self._client: Optional[chromadb.CloudClient] = None
+        self._client: Optional[chromadb.Client] = None
 
-    def get_client(self) -> chromadb.CloudClient:
+    def get_client(self) -> chromadb.Client:
         if self._client is None:
             try:
-                self._client = chromadb.CloudClient(
-                    api_key=os.getenv('CHROMA_API_KEY'),
-                    tenant=os.getenv('CHROMA_TENANT'),
-                    database=os.getenv('CHROMA_DATABASE')
+                # ChromaDB 0.3.29 uses HttpClient for cloud connections
+                self._client = chromadb.HttpClient(
+                    host="api.trychroma.com",
+                    port=443,
+                    ssl=True,
+                    headers={
+                        "Authorization": f"Bearer {os.getenv('CHROMA_API_KEY')}",
+                        "X-Chroma-Token": os.getenv('CHROMA_API_KEY')
+                    }
                 )
                 logger.info("Chroma Cloud client initialized successfully")
             except Exception as e:
