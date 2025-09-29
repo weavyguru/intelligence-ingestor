@@ -148,6 +148,18 @@ async def debug_env():
         "PORT": os.getenv("PORT", "MISSING")
     }
 
+@app.get("/debug-auth")
+async def debug_auth(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    expected_token = os.getenv("BEARER_TOKEN")
+    received_token = credentials.credentials
+    return {
+        "received_token": received_token,
+        "expected_token": expected_token,
+        "tokens_match": received_token == expected_token,
+        "received_length": len(received_token),
+        "expected_length": len(expected_token) if expected_token else 0
+    }
+
 if __name__ == "__main__":
     import uvicorn
     import os
