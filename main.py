@@ -130,7 +130,15 @@ async def ingest_data(
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "chroma": "bypassed", "note": "Railway deployment test"}
+    # Debug environment variables
+    env_debug = {
+        "has_bearer": bool(os.getenv("BEARER_TOKEN")),
+        "has_api_key": bool(os.getenv("CHROMA_API_KEY")),
+        "has_tenant": bool(os.getenv("CHROMA_TENANT")),
+        "has_database": bool(os.getenv("CHROMA_DATABASE")),
+        "tenant_value": os.getenv("CHROMA_TENANT", "MISSING")[:10] + "..." if os.getenv("CHROMA_TENANT") else "MISSING"
+    }
+    return {"status": "healthy", "env_debug": env_debug}
 
 if __name__ == "__main__":
     import uvicorn
