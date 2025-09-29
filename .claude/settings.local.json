@@ -24,7 +24,9 @@
       "Bash(gh repo create:*)",
       "Bash(git push:*)",
       "Bash(az version:*)",
-      "Bash(az ad sp create-for-rbac:*)"
+      "Bash(az ad sp create-for-rbac:*)",
+      "Bash(git pull:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
