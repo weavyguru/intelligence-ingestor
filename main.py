@@ -138,6 +138,16 @@ async def health_check():
         "bearer_length": len(bearer_token) if bearer_token != "MISSING" else 0
     }
 
+@app.get("/debug-env")
+async def debug_env():
+    return {
+        "BEARER_TOKEN": os.getenv("BEARER_TOKEN", "MISSING"),
+        "CHROMA_API_KEY": os.getenv("CHROMA_API_KEY", "MISSING"),
+        "CHROMA_TENANT": os.getenv("CHROMA_TENANT", "MISSING"),
+        "CHROMA_DATABASE": os.getenv("CHROMA_DATABASE", "MISSING"),
+        "PORT": os.getenv("PORT", "MISSING")
+    }
+
 if __name__ == "__main__":
     import uvicorn
     import os
