@@ -12,18 +12,13 @@ class ChromaClientManager:
     def get_client(self) -> chromadb.Client:
         if self._client is None:
             try:
-                # ChromaDB 0.3.29 uses Client with Settings for cloud connections
-                settings = chromadb.config.Settings(
-                    chroma_api_impl="chromadb.api.fastapi.FastAPI",
-                    chroma_server_host="api.trychroma.com",
-                    chroma_server_http_port=443,
-                    chroma_server_ssl_enabled=True,
-                    chroma_server_headers={
-                        "Authorization": f"Bearer {os.getenv('CHROMA_API_KEY')}",
-                        "X-Chroma-Token": os.getenv('CHROMA_API_KEY')
-                    }
-                )
-                self._client = chromadb.Client(settings)
+                # ChromaDB 0.3.29 - use default client (cloud auth via environment)
+                import os
+                os.environ['CHROMA_API_KEY'] = os.getenv('CHROMA_API_KEY')
+                os.environ['CHROMA_TENANT'] = os.getenv('CHROMA_TENANT')
+                os.environ['CHROMA_DATABASE'] = os.getenv('CHROMA_DATABASE')
+
+                self._client = chromadb.Client()
                 logger.info("Chroma Cloud client initialized successfully")
             except Exception as e:
                 logger.error(f"Failed to initialize Chroma client: {e}")
