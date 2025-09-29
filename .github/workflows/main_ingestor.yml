@@ -35,14 +35,26 @@ jobs:
       - name: Test application imports
         run: |
           python -c "
+          import sys
           try:
+              print('Testing FastAPI import...')
+              from fastapi import FastAPI
+              print('✅ FastAPI imported successfully')
+
+              print('Testing main app import...')
               from main import app
+              print('✅ Main app imported successfully')
+
+              print('Testing utils imports...')
               from utils.chroma_client import chroma_manager
               from utils.chunking import chunker
               print('✅ All imports successful')
+
           except Exception as e:
               print(f'❌ Import failed: {e}')
-              exit(1)
+              import traceback
+              traceback.print_exc()
+              sys.exit(1)
           "
 
       - name: Upload artifact for deployment jobs
