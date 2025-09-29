@@ -70,7 +70,7 @@ async def ingest_data(
     try:
         logger.info(f"Processing {request.source} {request.platform} {'comment' if request.isComment else 'post'} ID: {request.id}")
 
-        collection = chroma_manager.get_or_create_collection(is_test=test)
+        collection = await chroma_manager.get_or_create_collection_async(is_test=test)
 
         base_chroma_id = generate_chroma_id(request.model_dump())
 
@@ -110,11 +110,7 @@ async def ingest_data(
             documents.append(chunk_data["content"])
             metadatas.append(chunk_data["metadata"])
 
-        collection.upsert(
-            ids=ids,
-            documents=documents,
-            metadatas=metadatas
-        )
+        await chroma_manager.upsert_async(collection, ids, documents, metadatas)
 
         logger.info(f"Successfully ingested {len(chunks)} chunks for ID: {request.id}")
 
@@ -136,7 +132,7 @@ async def ingest_data(
 @app.get("/health")
 async def health_check():
     try:
-        is_healthy = chroma_manager.health_check()
+        is_healthy = await chroma_manager.health_check_async()
         if is_healthy:
             return {"status": "healthy", "chroma": "connected"}
         else:
@@ -152,9 +148,9 @@ async def retrieve_by_id(
     token: str = Depends(verify_token)
 ):
     try:
-        collection = chroma_manager.get_or_create_collection(is_test=test)
+        collection = await chroma_manager.get_or_create_collection_async(is_test=test)
 
-        result = collection.get(ids=[chroma_id])
+        result = await chroma_manager.get_async(collection, [chroma_id])
 
         if not result["ids"]:
             raise HTTPException(status_code=404, detail="Content not found")
@@ -176,12 +172,9 @@ async def semantic_search(
     token: str = Depends(verify_token)
 ):
     try:
-        collection = chroma_manager.get_or_create_collection(is_test=test)
+        collection = await chroma_manager.get_or_create_collection_async(is_test=test)
 
-        results = collection.query(
-            query_texts=[query],
-            n_results=limit
-        )
+        results = await chroma_manager.query_async(collection, [query], limit)
 
         if not results["ids"] or not results["ids"][0]:
             return {
@@ -216,5 +209,22 @@ if __name__ == "__main__":
     # Get port from environment variable (Railway sets this)
     port = int(os.environ.get("PORT", 8000))
 
-    logger.info(f"Starting server on port {port}")
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    # Get number of workers from environment variable
+    workers = int(os.environ.get("WORKERS", 4))
+
+    # In production, use multiple workers for better throughput
+    # For development, you can set WORKERS=1 to disable multiprocessing
+    logger.info(f"Starting server on port {port} with {workers} workers")
+
+    if workers > 1:
+        uvicorn.run(
+            "main:app",  # Use module:app format for multiprocessing
+            host="0.0.0.0",
+            port=port,
+            workers=workers,
+            access_log=False,  # Reduce logging overhead in production
+            log_level="info"
+        )
+    else:
+        # Single worker mode for development
+        uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
