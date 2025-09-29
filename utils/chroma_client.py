@@ -7,18 +7,16 @@ logger = logging.getLogger(__name__)
 
 class ChromaClientManager:
     def __init__(self):
-        self._client: Optional[chromadb.Client] = None
+        self._client: Optional[chromadb.CloudClient] = None
 
-    def get_client(self) -> chromadb.Client:
+    def get_client(self) -> chromadb.CloudClient:
         if self._client is None:
             try:
-                # ChromaDB 0.3.29 - use default client (cloud auth via environment)
-                import os
-                os.environ['CHROMA_API_KEY'] = os.getenv('CHROMA_API_KEY')
-                os.environ['CHROMA_TENANT'] = os.getenv('CHROMA_TENANT')
-                os.environ['CHROMA_DATABASE'] = os.getenv('CHROMA_DATABASE')
-
-                self._client = chromadb.Client()
+                self._client = chromadb.CloudClient(
+                    api_key=os.getenv('CHROMA_API_KEY'),
+                    tenant=os.getenv('CHROMA_TENANT'),
+                    database=os.getenv('CHROMA_DATABASE')
+                )
                 logger.info("Chroma Cloud client initialized successfully")
             except Exception as e:
                 logger.error(f"Failed to initialize Chroma client: {e}")

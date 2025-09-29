@@ -72,7 +72,7 @@ async def ingest_data(
 
         collection = chroma_manager.get_or_create_collection(is_test=test)
 
-        base_chroma_id = generate_chroma_id(request.dict())
+        base_chroma_id = generate_chroma_id(request.model_dump())
 
         base_metadata = {
             "platform": request.platform,
@@ -82,8 +82,8 @@ async def ingest_data(
             "deeplink": str(request.deeplink),
             "author": str(request.author),
             "title": request.title,
-            "is_comment": str(request.isComment),
-            "parent_post_id": request.id if request.isComment else "",
+            "is_comment": request.isComment,
+            "parent_post_id": request.id if request.isComment else None,
             "ingested_at": datetime.utcnow().isoformat()
         }
 
