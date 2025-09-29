@@ -140,27 +140,6 @@ async def health_check():
         logger.error(f"Health check failed: {e}")
         raise HTTPException(status_code=503, detail="Service unavailable")
 
-@app.get("/debug-env")
-async def debug_env():
-    return {
-        "BEARER_TOKEN": os.getenv("BEARER_TOKEN", "MISSING"),
-        "CHROMA_API_KEY": os.getenv("CHROMA_API_KEY", "MISSING"),
-        "CHROMA_TENANT": os.getenv("CHROMA_TENANT", "MISSING"),
-        "CHROMA_DATABASE": os.getenv("CHROMA_DATABASE", "MISSING"),
-        "PORT": os.getenv("PORT", "MISSING")
-    }
-
-@app.get("/debug-auth")
-async def debug_auth(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    expected_token = os.getenv("BEARER_TOKEN")
-    received_token = credentials.credentials
-    return {
-        "received_token": received_token,
-        "expected_token": expected_token,
-        "tokens_match": received_token == expected_token,
-        "received_length": len(received_token),
-        "expected_length": len(expected_token) if expected_token else 0
-    }
 
 if __name__ == "__main__":
     import uvicorn
