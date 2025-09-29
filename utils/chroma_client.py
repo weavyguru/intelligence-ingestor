@@ -44,8 +44,43 @@ class ChromaClientManager:
                     logger.error(f"Failed to create client {i+1}: {e}")
                     raise
 
+            # Pre-warm the embedding model to avoid race conditions
+            self._prewarm_model()
+
             self._initialized = True
             logger.info("ChromaDB connection pool initialized successfully")
+
+    def _prewarm_model(self):
+        """Pre-warm the ONNX embedding model to avoid initialization race conditions."""
+        try:
+            logger.info("Pre-warming ChromaDB embedding model...")
+
+            # Get a client and create a temporary collection
+            client = self._client_pool[0] if self._client_pool else self.get_client()
+
+            # Create a minimal test collection to trigger model loading
+            test_collection = client.get_or_create_collection(
+                name="__model_prewarm__",
+                metadata={"description": "Temporary collection for model pre-warming"}
+            )
+
+            # Add a small test document to trigger embedding model initialization
+            test_collection.upsert(
+                ids=["prewarm_test"],
+                documents=["Test document for model initialization"],
+                metadatas=[{"type": "prewarm"}]
+            )
+
+            # Clean up the test collection
+            try:
+                client.delete_collection(name="__model_prewarm__")
+                logger.info("ChromaDB embedding model pre-warmed successfully")
+            except Exception as cleanup_error:
+                logger.warning(f"Failed to cleanup prewarm collection: {cleanup_error}")
+
+        except Exception as e:
+            logger.warning(f"Model pre-warming failed (continuing anyway): {e}")
+            # Don't fail initialization if pre-warming fails
 
     def get_client(self) -> chromadb.CloudClient:
         """Get a client from the pool. Falls back to creating a new one if pool is not ready."""

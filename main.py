@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, HttpUrl, Field
 from datetime import datetime
+import asyncio
 import hashlib
 import logging
 import os
@@ -110,7 +111,24 @@ async def ingest_data(
             documents.append(chunk_data["content"])
             metadatas.append(chunk_data["metadata"])
 
-        await chroma_manager.upsert_async(collection, ids, documents, metadatas)
+        # Retry logic for ONNX model errors
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                await chroma_manager.upsert_async(collection, ids, documents, metadatas)
+                break  # Success, exit retry loop
+            except Exception as upsert_error:
+                if "INVALID_PROTOBUF" in str(upsert_error) or "ONNX" in str(upsert_error):
+                    if attempt < max_retries - 1:
+                        logger.warning(f"ONNX model error on attempt {attempt + 1}, retrying... Error: {upsert_error}")
+                        await asyncio.sleep(0.5 * (attempt + 1))  # Exponential backoff
+                        continue
+                    else:
+                        logger.error(f"ONNX model error after {max_retries} attempts: {upsert_error}")
+                        raise HTTPException(status_code=503, detail="Embedding model temporarily unavailable")
+                else:
+                    # Re-raise non-ONNX errors immediately
+                    raise upsert_error
 
         logger.info(f"Successfully ingested {len(chunks)} chunks for ID: {request.id}")
 
@@ -126,6 +144,8 @@ async def ingest_data(
 
         if "connection" in str(e).lower() or "timeout" in str(e).lower():
             raise HTTPException(status_code=503, detail="Service temporarily unavailable")
+        elif "INVALID_PROTOBUF" in str(e) or "ONNX" in str(e):
+            raise HTTPException(status_code=503, detail="Embedding model temporarily unavailable")
         else:
             raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
