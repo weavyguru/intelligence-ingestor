@@ -1,0 +1,26 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Pre-download ONNX model during build (avoids runtime race conditions)
+ENV CHROMA_API_KEY=dummy_key
+ENV CHROMA_TENANT=dummy_tenant
+ENV CHROMA_DATABASE=dummy_db
+
+# Pre-initialize model cache by importing chromadb
+RUN python -c "import chromadb; chromadb.Client()"
+
+# Reset environment for runtime
+ENV CHROMA_API_KEY=
+ENV CHROMA_TENANT=
+ENV CHROMA_DATABASE=
+
+# Run with multiple workers
+CMD ["python", "main.py"]

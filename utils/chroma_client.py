@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, List
 from queue import Queue
 import time
+from .model_manager import model_manager
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,11 @@ class ChromaClientManager:
             if self._initialized:
                 return
 
+            # Ensure ONNX model is ready BEFORE creating clients
+            logger.info("Ensuring ONNX model is ready for multi-worker environment...")
+            if not model_manager.ensure_model_ready():
+                logger.warning("Model initialization failed, continuing anyway...")
+
             logger.info(f"Initializing ChromaDB connection pool with {self._pool_size} connections")
 
             for i in range(self._pool_size):
@@ -43,9 +49,6 @@ class ChromaClientManager:
                 except Exception as e:
                     logger.error(f"Failed to create client {i+1}: {e}")
                     raise
-
-            # Pre-warm the embedding model to avoid race conditions
-            self._prewarm_model()
 
             self._initialized = True
             logger.info("ChromaDB connection pool initialized successfully")
