@@ -82,8 +82,8 @@ async def ingest_data(
             "deeplink": str(request.deeplink),
             "author": str(request.author),
             "title": request.title,
-            "is_comment": request.isComment,
-            "parent_post_id": request.id if request.isComment else None,
+            "is_comment": str(request.isComment),
+            "parent_post_id": request.id if request.isComment else "",
             "ingested_at": datetime.utcnow().isoformat()
         }
 
