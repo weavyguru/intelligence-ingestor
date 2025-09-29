@@ -14,11 +14,14 @@ logger = logging.getLogger(__name__)
 class ChromaClientManager:
     def __init__(self):
         self._client_pool: List[chromadb.CloudClient] = []
-        self._pool_size = int(os.getenv('CHROMA_POOL_SIZE', '10'))
+        # OPTIMIZATION: Reduce pool size for Railway
+        self._pool_size = int(os.getenv('CHROMA_POOL_SIZE', '1'))  # Single client for single worker
         self._available_clients = Queue()
         self._lock = threading.Lock()
-        self._thread_pool = ThreadPoolExecutor(max_workers=20)
+        # OPTIMIZATION: Reduce thread pool size
+        self._thread_pool = ThreadPoolExecutor(max_workers=5)
         self._initialized = False
+        self._collections_cache = {}  # Cache collection references
 
     def _initialize_pool(self):
         """Initialize the connection pool with multiple ChromaDB clients."""
@@ -113,15 +116,21 @@ class ChromaClientManager:
         return f"{base_name}-test" if is_test else base_name
 
     def get_or_create_collection(self, is_test: bool = False):
-        client = self.get_client()
         collection_name = self.get_collection_name(is_test)
 
+        # OPTIMIZATION: Cache collections to avoid repeated API calls
+        if collection_name in self._collections_cache:
+            return self._collections_cache[collection_name]
+
+        client = self.get_client()
         try:
             collection = client.get_or_create_collection(
                 name=collection_name,
                 metadata={"description": "Community intelligence data collection"}
             )
-            logger.info(f"Collection '{collection_name}' ready")
+            # Cache the collection reference
+            self._collections_cache[collection_name] = collection
+            logger.info(f"Collection '{collection_name}' cached")
             return collection
         except Exception as e:
             logger.error(f"Failed to get/create collection '{collection_name}': {e}")
@@ -131,6 +140,13 @@ class ChromaClientManager:
 
     async def get_or_create_collection_async(self, is_test: bool = False):
         """Async version of get_or_create_collection using thread pool."""
+        collection_name = self.get_collection_name(is_test)
+
+        # OPTIMIZATION: Return cached collection immediately (no async needed)
+        if collection_name in self._collections_cache:
+            return self._collections_cache[collection_name]
+
+        # Only do async call if not cached
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
             self._thread_pool,
