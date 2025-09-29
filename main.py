@@ -130,7 +130,13 @@ async def ingest_data(
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "chroma": "bypassed", "note": "Railway deployment working"}
+    bearer_token = os.getenv("BEARER_TOKEN", "MISSING")
+    return {
+        "status": "healthy",
+        "chroma": "bypassed",
+        "bearer_preview": bearer_token[:10] + "..." if bearer_token != "MISSING" else "MISSING",
+        "bearer_length": len(bearer_token) if bearer_token != "MISSING" else 0
+    }
 
 if __name__ == "__main__":
     import uvicorn
