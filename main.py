@@ -19,6 +19,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# OPTIMIZATION: Global semaphore for Railway concurrency limiting
+MAX_CONCURRENT_REQUESTS = int(os.getenv('MAX_CONCURRENT_REQUESTS', '5'))
+request_semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+
 app = FastAPI(
     title="Chroma Vector DB Middleware",
     description="Community intelligence data ingestion service",
@@ -68,86 +72,88 @@ async def ingest_data(
     test: bool = Query(False, description="Use test collection if true"),
     token: str = Depends(verify_token)
 ):
-    try:
-        logger.info(f"Processing {request.source} {request.platform} {'comment' if request.isComment else 'post'} ID: {request.id}")
+    # OPTIMIZATION: Limit concurrent requests for Railway stability
+    async with request_semaphore:
+        try:
+            logger.info(f"Processing {request.source} {request.platform} {'comment' if request.isComment else 'post'} ID: {request.id}")
 
-        collection = await chroma_manager.get_or_create_collection_async(is_test=test)
+            collection = await chroma_manager.get_or_create_collection_async(is_test=test)
 
-        base_chroma_id = generate_chroma_id(request.model_dump())
+            base_chroma_id = generate_chroma_id(request.model_dump())
 
-        base_metadata = {
-            "platform": request.platform,
-            "source": request.source,
-            "original_id": request.id,
-            "timestamp": request.timestamp.isoformat(),
-            "deeplink": str(request.deeplink),
-            "author": str(request.author),
-            "title": request.title,
-            "is_comment": request.isComment,
-            "parent_post_id": request.id if request.isComment else None,
-            "ingested_at": datetime.utcnow().isoformat()
-        }
+            base_metadata = {
+                "platform": request.platform,
+                "source": request.source,
+                "original_id": request.id,
+                "timestamp": request.timestamp.isoformat(),
+                "deeplink": str(request.deeplink),
+                "author": str(request.author),
+                "title": request.title,
+                "is_comment": request.isComment,
+                "parent_post_id": request.id if request.isComment else None,
+                "ingested_at": datetime.utcnow().isoformat()
+            }
 
-        chunks = chunker.prepare_chunks_with_metadata(
-            content=request.body,
-            base_metadata=base_metadata,
-            title=request.title if not request.isComment else "",
-            is_comment=request.isComment
-        )
+            chunks = chunker.prepare_chunks_with_metadata(
+                content=request.body,
+                base_metadata=base_metadata,
+                title=request.title if not request.isComment else "",
+                is_comment=request.isComment
+            )
 
-        ids = []
-        documents = []
-        metadatas = []
+            ids = []
+            documents = []
+            metadatas = []
 
-        for chunk_data in chunks:
-            chunk_index = chunk_data["metadata"]["chunk_index"]
+            for chunk_data in chunks:
+                chunk_index = chunk_data["metadata"]["chunk_index"]
 
-            if len(chunks) > 1:
-                chroma_id = f"{base_chroma_id}_chunk_{chunk_index}"
-            else:
-                chroma_id = base_chroma_id
-
-            ids.append(chroma_id)
-            documents.append(chunk_data["content"])
-            metadatas.append(chunk_data["metadata"])
-
-        # Retry logic for ONNX model errors
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                await chroma_manager.upsert_async(collection, ids, documents, metadatas)
-                break  # Success, exit retry loop
-            except Exception as upsert_error:
-                if "INVALID_PROTOBUF" in str(upsert_error) or "ONNX" in str(upsert_error):
-                    if attempt < max_retries - 1:
-                        logger.warning(f"ONNX model error on attempt {attempt + 1}, retrying... Error: {upsert_error}")
-                        await asyncio.sleep(0.5 * (attempt + 1))  # Exponential backoff
-                        continue
-                    else:
-                        logger.error(f"ONNX model error after {max_retries} attempts: {upsert_error}")
-                        raise HTTPException(status_code=503, detail="Embedding model temporarily unavailable")
+                if len(chunks) > 1:
+                    chroma_id = f"{base_chroma_id}_chunk_{chunk_index}"
                 else:
-                    # Re-raise non-ONNX errors immediately
-                    raise upsert_error
+                    chroma_id = base_chroma_id
 
-        logger.info(f"Successfully ingested {len(chunks)} chunks for ID: {request.id}")
+                ids.append(chroma_id)
+                documents.append(chunk_data["content"])
+                metadatas.append(chunk_data["metadata"])
 
-        return {
-            "status": "success",
-            "chroma_ids": ids,
-            "chunks_created": len(chunks),
-            "base_id": base_chroma_id
-        }
+            # Retry logic for ONNX model errors
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    await chroma_manager.upsert_async(collection, ids, documents, metadatas)
+                    break  # Success, exit retry loop
+                except Exception as upsert_error:
+                    if "INVALID_PROTOBUF" in str(upsert_error) or "ONNX" in str(upsert_error):
+                        if attempt < max_retries - 1:
+                            logger.warning(f"ONNX model error on attempt {attempt + 1}, retrying... Error: {upsert_error}")
+                            await asyncio.sleep(0.5 * (attempt + 1))  # Exponential backoff
+                            continue
+                        else:
+                            logger.error(f"ONNX model error after {max_retries} attempts: {upsert_error}")
+                            raise HTTPException(status_code=503, detail="Embedding model temporarily unavailable")
+                    else:
+                        # Re-raise non-ONNX errors immediately
+                        raise upsert_error
 
-    except Exception as e:
-        logger.error(f"Failed to ingest data: {e}")
+            logger.info(f"Successfully ingested {len(chunks)} chunks for ID: {request.id}")
 
-        if "connection" in str(e).lower() or "timeout" in str(e).lower():
-            raise HTTPException(status_code=503, detail="Service temporarily unavailable")
-        elif "INVALID_PROTOBUF" in str(e) or "ONNX" in str(e):
-            raise HTTPException(status_code=503, detail="Embedding model temporarily unavailable")
-        else:
-            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+            return {
+                "status": "success",
+                "chroma_ids": ids,
+                "chunks_created": len(chunks),
+                "base_id": base_chroma_id
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to ingest data: {e}")
+
+            if "connection" in str(e).lower() or "timeout" in str(e).lower():
+                raise HTTPException(status_code=503, detail="Service temporarily unavailable")
+            elif "INVALID_PROTOBUF" in str(e) or "ONNX" in str(e):
+                raise HTTPException(status_code=503, detail="Embedding model temporarily unavailable")
+            else:
+                raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.get("/health")
 async def health_check():
