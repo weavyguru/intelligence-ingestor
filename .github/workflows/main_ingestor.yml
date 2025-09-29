@@ -31,8 +31,19 @@ jobs:
       
       - name: Install dependencies
         run: pip install -r requirements.txt
-        
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
+
+      - name: Test application imports
+        run: |
+          python -c "
+          try:
+              from main import app
+              from utils.chroma_client import chroma_manager
+              from utils.chunking import chunker
+              print('✅ All imports successful')
+          except Exception as e:
+              print(f'❌ Import failed: {e}')
+              exit(1)
+          "
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
@@ -58,4 +69,33 @@ jobs:
         with:
           app-name: 'ingestor'
           slot-name: 'Production'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_62C165B5F30A4E3D914065536048FB8E }}
+
+      - name: 'Configure App Settings'
+        uses: azure/appservice-settings@v1
+        with:
+          app-name: 'ingestor'
+          app-settings-json: |
+            [
+              {
+                "name": "BEARER_TOKEN",
+                "value": "${{ secrets.BEARER_TOKEN_PRODUCTION }}",
+                "slotSetting": false
+              },
+              {
+                "name": "CHROMA_API_KEY",
+                "value": "${{ secrets.CHROMA_API_KEY }}",
+                "slotSetting": false
+              },
+              {
+                "name": "CHROMA_TENANT",
+                "value": "${{ secrets.CHROMA_TENANT }}",
+                "slotSetting": false
+              },
+              {
+                "name": "CHROMA_DATABASE",
+                "value": "${{ secrets.CHROMA_DATABASE }}",
+                "slotSetting": false
+              }
+            ]
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_62C165B5F30A4E3D914065536048FB8E }}
