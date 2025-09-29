@@ -61,7 +61,61 @@ Authorization: Bearer YOUR_TOKEN_HERE
 **Response:**
 ```json
 {
-  "status": "success"
+  "status": "success",
+  "chroma_ids": ["platform_source_post_id", "platform_source_post_id_chunk_1"],
+  "chunks_created": 2,
+  "base_id": "platform_source_post_id"
+}
+```
+
+### Retrieve Content by ID
+Retrieve specific content using its ChromaDB ID.
+
+```http
+GET /retrieve/{chroma_id}?test=false
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+
+**Response:**
+```json
+{
+  "id": "platform_source_post_id",
+  "content": "The actual content text",
+  "metadata": {
+    "platform": "Lovable",
+    "source": "Reddit",
+    "title": "Post title",
+    ...
+  }
+}
+```
+
+### Semantic Search
+Search content using natural language queries.
+
+```http
+POST /search?query=API+best+practices&limit=5&test=false
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+
+**Query Parameters:**
+- `query` (required): Search query text
+- `limit` (optional): Number of results (1-20, default: 5)
+- `test` (optional): Set to `true` to search test collection
+
+**Response:**
+```json
+{
+  "query": "API best practices",
+  "results": [
+    {
+      "id": "platform_source_post_id",
+      "content": "Here are some best practices for API development...",
+      "metadata": {...},
+      "distance": 0.123
+    }
+  ],
+  "count": 1
 }
 ```
 
@@ -169,6 +223,18 @@ curl -X POST "https://intelligence-ingestor-production.up.railway.app/ingest?tes
     "body": "Great point about API versioning!",
     "isComment": true
   }'
+```
+
+### Retrieve Content by ID
+```bash
+curl -X GET "https://intelligence-ingestor-production.up.railway.app/retrieve/lovable_reddit_post_abc123" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Search Content
+```bash
+curl -X POST "https://intelligence-ingestor-production.up.railway.app/search?query=API%20development&limit=3" \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ## Best Practices

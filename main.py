@@ -118,7 +118,12 @@ async def ingest_data(
 
         logger.info(f"Successfully ingested {len(chunks)} chunks for ID: {request.id}")
 
-        return {"status": "success"}
+        return {
+            "status": "success",
+            "chroma_ids": ids,
+            "chunks_created": len(chunks),
+            "base_id": base_chroma_id
+        }
 
     except Exception as e:
         logger.error(f"Failed to ingest data: {e}")
@@ -139,6 +144,69 @@ async def health_check():
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         raise HTTPException(status_code=503, detail="Service unavailable")
+
+@app.get("/retrieve/{chroma_id}")
+async def retrieve_by_id(
+    chroma_id: str,
+    test: bool = Query(False, description="Use test collection if true"),
+    token: str = Depends(verify_token)
+):
+    try:
+        collection = chroma_manager.get_or_create_collection(is_test=test)
+
+        result = collection.get(ids=[chroma_id])
+
+        if not result["ids"]:
+            raise HTTPException(status_code=404, detail="Content not found")
+
+        return {
+            "id": result["ids"][0],
+            "content": result["documents"][0] if result["documents"] else None,
+            "metadata": result["metadatas"][0] if result["metadatas"] else None
+        }
+    except Exception as e:
+        logger.error(f"Failed to retrieve content: {e}")
+        raise HTTPException(status_code=500, detail=f"Retrieval failed: {str(e)}")
+
+@app.post("/search")
+async def semantic_search(
+    query: str = Query(..., description="Search query"),
+    limit: int = Query(5, ge=1, le=20, description="Number of results to return"),
+    test: bool = Query(False, description="Use test collection if true"),
+    token: str = Depends(verify_token)
+):
+    try:
+        collection = chroma_manager.get_or_create_collection(is_test=test)
+
+        results = collection.query(
+            query_texts=[query],
+            n_results=limit
+        )
+
+        if not results["ids"] or not results["ids"][0]:
+            return {
+                "query": query,
+                "results": [],
+                "count": 0
+            }
+
+        search_results = []
+        for i in range(len(results["ids"][0])):
+            search_results.append({
+                "id": results["ids"][0][i],
+                "content": results["documents"][0][i] if results["documents"] and results["documents"][0] else None,
+                "metadata": results["metadatas"][0][i] if results["metadatas"] and results["metadatas"][0] else None,
+                "distance": results["distances"][0][i] if results["distances"] and results["distances"][0] else None
+            })
+
+        return {
+            "query": query,
+            "results": search_results,
+            "count": len(search_results)
+        }
+    except Exception as e:
+        logger.error(f"Failed to perform search: {e}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
 if __name__ == "__main__":
