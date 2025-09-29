@@ -144,7 +144,7 @@ if __name__ == "__main__":
     import uvicorn
     import os
 
-    # Get port from environment variable (Azure sets this)
+    # Get port from environment variable (Railway sets this)
     port = int(os.environ.get("PORT", 8000))
 
     logger.info(f"Starting server on port {port}")
