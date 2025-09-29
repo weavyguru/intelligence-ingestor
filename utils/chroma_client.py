@@ -60,7 +60,7 @@ class ChromaClientManager:
 
             # Create a minimal test collection to trigger model loading
             test_collection = client.get_or_create_collection(
-                name="__model_prewarm__",
+                name="model-prewarm-temp",
                 metadata={"description": "Temporary collection for model pre-warming"}
             )
 
@@ -73,7 +73,7 @@ class ChromaClientManager:
 
             # Clean up the test collection
             try:
-                client.delete_collection(name="__model_prewarm__")
+                client.delete_collection(name="model-prewarm-temp")
                 logger.info("ChromaDB embedding model pre-warmed successfully")
             except Exception as cleanup_error:
                 logger.warning(f"Failed to cleanup prewarm collection: {cleanup_error}")
