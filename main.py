@@ -130,15 +130,15 @@ async def ingest_data(
 
 @app.get("/health")
 async def health_check():
-    # Debug environment variables
-    env_debug = {
-        "has_bearer": bool(os.getenv("BEARER_TOKEN")),
-        "has_api_key": bool(os.getenv("CHROMA_API_KEY")),
-        "has_tenant": bool(os.getenv("CHROMA_TENANT")),
-        "has_database": bool(os.getenv("CHROMA_DATABASE")),
-        "tenant_value": os.getenv("CHROMA_TENANT", "MISSING")[:10] + "..." if os.getenv("CHROMA_TENANT") else "MISSING"
-    }
-    return {"status": "healthy", "env_debug": env_debug}
+    try:
+        is_healthy = chroma_manager.health_check()
+        if is_healthy:
+            return {"status": "healthy", "chroma": "connected"}
+        else:
+            raise HTTPException(status_code=503, detail="Chroma database unavailable")
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        raise HTTPException(status_code=503, detail="Service unavailable")
 
 if __name__ == "__main__":
     import uvicorn
