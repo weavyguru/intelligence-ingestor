@@ -83,6 +83,7 @@ jobs:
           app-name: 'ingestor'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_62C165B5F30A4E3D914065536048FB8E }}
           package: .
+          startup-command: 'bash startup.sh'
         env:
           BEARER_TOKEN: ${{ secrets.BEARER_TOKEN_PRODUCTION }}
           CHROMA_API_KEY: ${{ secrets.CHROMA_API_KEY }}
