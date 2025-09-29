@@ -26,7 +26,9 @@
       "Bash(az version:*)",
       "Bash(az ad sp create-for-rbac:*)",
       "Bash(git pull:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(gh run list:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
