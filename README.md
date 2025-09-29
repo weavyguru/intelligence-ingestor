@@ -20,6 +20,8 @@ A Python middleware service that ingests community data from various sources (Re
 pip install -r requirements.txt
 ```
 
+**🎉 Now with automated Azure deployment via GitHub Actions!**
+
 ### 2. Environment Setup
 
 Copy the example environment file and update with your values:
