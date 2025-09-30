@@ -37,7 +37,7 @@ class IngestRequest(BaseModel):
     id: str = Field(..., description="Original post/thread ID from source")
     timestamp: datetime = Field(..., description="Content timestamp in ISO 8601 format")
     deeplink: HttpUrl = Field(..., description="Direct link to content")
-    author: HttpUrl = Field(..., description="Author profile URL")
+    author: str = Field(..., description="Author profile or identifier")
     title: str = Field(..., description="Post/comment title")
     body: str = Field(..., description="Content to embed")
     isComment: bool = Field(..., description="True for comments, False for posts")
