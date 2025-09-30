@@ -133,8 +133,35 @@ class ChromaClientManager:
             logger.info(f"Collection '{collection_name}' cached")
             return collection
         except Exception as e:
-            logger.error(f"Failed to get/create collection '{collection_name}': {e}")
-            raise
+            # Handle soft deleted collection case
+            if "soft deleted" in str(e).lower() or "collection soft deleted" in str(e).lower():
+                logger.warning(f"Collection '{collection_name}' is soft deleted, attempting to recreate...")
+                # Clear any cached reference to this collection
+                if collection_name in self._collections_cache:
+                    del self._collections_cache[collection_name]
+                try:
+                    # First try to delete the soft deleted collection completely
+                    try:
+                        client.delete_collection(name=collection_name)
+                        logger.info(f"Successfully deleted soft deleted collection '{collection_name}'")
+                    except Exception as delete_error:
+                        logger.warning(f"Could not delete collection (may not exist): {delete_error}")
+
+                    # Now create a fresh collection
+                    collection = client.create_collection(
+                        name=collection_name,
+                        metadata={"description": "Community intelligence data collection"}
+                    )
+                    # Cache the new collection reference
+                    self._collections_cache[collection_name] = collection
+                    logger.info(f"Successfully recreated collection '{collection_name}'")
+                    return collection
+                except Exception as recreate_error:
+                    logger.error(f"Failed to recreate collection '{collection_name}': {recreate_error}")
+                    raise recreate_error
+            else:
+                logger.error(f"Failed to get/create collection '{collection_name}': {e}")
+                raise
         finally:
             self.return_client(client)
 
