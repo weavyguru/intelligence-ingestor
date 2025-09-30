@@ -51,10 +51,12 @@ Authorization: Bearer YOUR_TOKEN_HERE
   "id": "string",           // Original post/thread ID from source
   "timestamp": "2024-01-15T10:30:00Z",  // ISO 8601 format
   "deeplink": "https://example.com/post", // Direct link to content
-  "author": "https://example.com/user",   // Author profile URL
+  "author": "string",        // Author profile or identifier
   "title": "string",        // Post/comment title
   "body": "string",         // Content to embed
-  "isComment": false        // true for comments, false for posts
+  "isComment": false,       // true for comments, false for posts
+  "comments": 42,           // (Optional) Number of comments on the post
+  "likes": 123              // (Optional) Number of likes/upvotes on the post
 }
 ```
 
@@ -148,13 +150,15 @@ Each ingested item includes:
   "original_id": "source ID",
   "timestamp": "ISO timestamp",
   "deeplink": "original URL",
-  "author": "author profile URL",
+  "author": "author profile or identifier",
   "title": "content title",
   "is_comment": true/false,
   "parent_post_id": "ID if comment",
   "ingested_at": "processing timestamp",
   "chunk_index": 0,
-  "total_chunks": 1
+  "total_chunks": 1,
+  "comments": 42,  // Optional: included only if provided
+  "likes": 123     // Optional: included only if provided
 }
 ```
 
@@ -200,10 +204,12 @@ curl -X POST "https://intelligence-ingestor-production.up.railway.app/ingest?tes
     "id": "abc123",
     "timestamp": "2024-01-15T10:30:00Z",
     "deeplink": "https://reddit.com/r/programming/comments/abc123",
-    "author": "https://reddit.com/u/developer",
+    "author": "developer",
     "title": "How to Build Better APIs",
     "body": "Here are some best practices for API development...",
-    "isComment": false
+    "isComment": false,
+    "comments": 42,
+    "likes": 156
   }'
 ```
 
@@ -218,10 +224,11 @@ curl -X POST "https://intelligence-ingestor-production.up.railway.app/ingest?tes
     "id": "parent_post_id",
     "timestamp": "2024-01-15T10:35:00Z",
     "deeplink": "https://discord.com/channels/123/456/789",
-    "author": "https://discord.com/users/987654",
+    "author": "user987654",
     "title": "",
     "body": "Great point about API versioning!",
-    "isComment": true
+    "isComment": true,
+    "likes": 8
   }'
 ```
 

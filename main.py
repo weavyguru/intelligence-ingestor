@@ -41,6 +41,8 @@ class IngestRequest(BaseModel):
     title: str = Field(..., description="Post/comment title")
     body: str = Field(..., description="Content to embed")
     isComment: bool = Field(..., description="True for comments, False for posts")
+    comments: int | None = Field(None, description="Number of comments on the post")
+    likes: int | None = Field(None, description="Number of likes/upvotes on the post")
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     expected_token = os.getenv("BEARER_TOKEN")
@@ -93,6 +95,12 @@ async def ingest_data(
                 "parent_post_id": request.id if request.isComment else None,
                 "ingested_at": datetime.utcnow().isoformat()
             }
+
+            # Add optional fields if provided
+            if request.comments is not None:
+                base_metadata["comments"] = request.comments
+            if request.likes is not None:
+                base_metadata["likes"] = request.likes
 
             chunks = chunker.prepare_chunks_with_metadata(
                 content=request.body,
