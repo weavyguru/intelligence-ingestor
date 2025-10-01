@@ -77,6 +77,10 @@ async def ingest_data(
     # OPTIMIZATION: Limit concurrent requests for Railway stability
     async with request_semaphore:
         try:
+            # Validate that body is not empty
+            if not request.body or not request.body.strip():
+                raise HTTPException(status_code=400, detail="Body field cannot be empty")
+
             logger.info(f"Processing {request.source} {request.platform} {'comment' if request.isComment else 'post'} ID: {request.id}")
 
             collection = await chroma_manager.get_or_create_collection_async(is_test=test)
