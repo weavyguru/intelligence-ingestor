@@ -88,8 +88,8 @@ async def ingest_data(
             base_chroma_id = generate_chroma_id(request.model_dump())
 
             base_metadata = {
-                "platform": request.platform,
-                "source": request.source,
+                "platform": request.platform.lower(),
+                "source": request.source.lower(),
                 "original_id": request.id,
                 "timestamp": request.timestamp.isoformat(),
                 "deeplink": str(request.deeplink),
