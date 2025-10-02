@@ -212,13 +212,20 @@ class ChromaClientManager:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(self._thread_pool, _upsert)
 
-    async def query_async(self, collection, query_texts: List[str], n_results: int):
+    async def query_async(self, collection, query_texts: List[str], n_results: int, where: dict = None):
         """Async query operation using thread pool."""
         def _query():
-            return collection.query(
-                query_texts=query_texts,
-                n_results=n_results
-            )
+            if where:
+                return collection.query(
+                    query_texts=query_texts,
+                    n_results=n_results,
+                    where=where
+                )
+            else:
+                return collection.query(
+                    query_texts=query_texts,
+                    n_results=n_results
+                )
 
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(self._thread_pool, _query)

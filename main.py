@@ -224,12 +224,28 @@ async def semantic_search(
     query: str = Query(..., description="Search query"),
     limit: int = Query(5, ge=1, le=20, description="Number of results to return"),
     test: bool = Query(False, description="Use test collection if true"),
+    start_date: str = Query(None, description="Filter results from this date (ISO 8601 format, e.g., 2025-09-10T00:00:00)"),
+    end_date: str = Query(None, description="Filter results until this date (ISO 8601 format, e.g., 2025-09-20T23:59:59)"),
     token: str = Depends(verify_token)
 ):
     try:
         collection = await chroma_manager.get_or_create_collection_async(is_test=test)
 
-        results = await chroma_manager.query_async(collection, [query], limit)
+        # Build where filter for date range if provided
+        where_filter = None
+        if start_date or end_date:
+            filters = []
+            if start_date:
+                filters.append({"timestamp": {"$gte": start_date}})
+            if end_date:
+                filters.append({"timestamp": {"$lte": end_date}})
+
+            if len(filters) == 2:
+                where_filter = {"$and": filters}
+            else:
+                where_filter = filters[0]
+
+        results = await chroma_manager.query_async(collection, [query], limit, where_filter)
 
         if not results["ids"] or not results["ids"][0]:
             return {
