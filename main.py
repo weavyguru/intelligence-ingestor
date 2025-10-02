@@ -109,6 +109,7 @@ async def ingest_data(
                 "source": request.source.lower(),
                 "original_id": request.id,
                 "timestamp": request.timestamp.isoformat(),
+                "timestamp_unix": int(request.timestamp.timestamp()),
                 "deeplink": str(request.deeplink),
                 "author": str(request.author),
                 "title": request.title,
@@ -236,9 +237,15 @@ async def semantic_search(
         if start_date or end_date:
             filters = []
             if start_date:
-                filters.append({"timestamp": {"$gte": start_date}})
+                # Convert ISO date string to Unix timestamp
+                start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                start_unix = int(start_dt.timestamp())
+                filters.append({"timestamp_unix": {"$gte": start_unix}})
             if end_date:
-                filters.append({"timestamp": {"$lte": end_date}})
+                # Convert ISO date string to Unix timestamp
+                end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+                end_unix = int(end_dt.timestamp())
+                filters.append({"timestamp_unix": {"$lte": end_unix}})
 
             if len(filters) == 2:
                 where_filter = {"$and": filters}
