@@ -231,6 +231,38 @@ class ChromaClientManager:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(self._thread_pool, _get)
 
+    async def get_all_async(self, collection):
+        """Async get all documents operation using thread pool."""
+        def _get_all():
+            return collection.get()
+
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self._thread_pool, _get_all)
+
+    async def get_with_limit_async(self, collection, limit: int = 1000, offset: int = 0):
+        """Async get with limit and offset for pagination."""
+        def _get_with_limit():
+            return collection.get(limit=limit, offset=offset)
+
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self._thread_pool, _get_with_limit)
+
+    async def delete_async(self, collection, ids: List[str]):
+        """Async delete operation using thread pool."""
+        def _delete():
+            return collection.delete(ids=ids)
+
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self._thread_pool, _delete)
+
+    async def get_by_metadata_async(self, collection, where: dict, limit: int = 1):
+        """Async get by metadata filter using thread pool."""
+        def _get_by_metadata():
+            return collection.get(where=where, limit=limit)
+
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self._thread_pool, _get_by_metadata)
+
     def __init_batching__(self):
         """Initialize batching functionality."""
         self._batch_queue = []

@@ -85,6 +85,23 @@ async def ingest_data(
 
             collection = await chroma_manager.get_or_create_collection_async(is_test=test)
 
+            # Check if deeplink already exists
+            deeplink_str = str(request.deeplink)
+            existing = await chroma_manager.get_by_metadata_async(
+                collection,
+                where={"deeplink": deeplink_str},
+                limit=1
+            )
+
+            if existing["ids"] and len(existing["ids"]) > 0:
+                logger.info(f"Skipping duplicate - deeplink already exists: {deeplink_str}")
+                return {
+                    "status": "skipped",
+                    "reason": "duplicate_deeplink",
+                    "existing_id": existing["ids"][0],
+                    "deeplink": deeplink_str
+                }
+
             base_chroma_id = generate_chroma_id(request.model_dump())
 
             base_metadata = {
